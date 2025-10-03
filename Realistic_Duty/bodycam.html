@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bodycam UI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root{
+            --panel-bg: rgba(12,18,28,0.85);
+            --panel-border: rgba(255,255,255,0.06);
+            --muted: rgba(255,255,255,0.7);
+            --accent: #9fb8ff;
+            --mono: 'Roboto Mono', Consolas, monospace;
+        }
+
+        html,body{height:100%;}
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Container */
+        #bodycam {
+            position: absolute;
+            top: 40px;
+            right: 18px;
+            width: 360px;
+            background: linear-gradient(180deg, rgba(18,24,34,0.92), rgba(12,18,28,0.92));
+            border-radius: 12px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+            display: none;
+            z-index: 9999;
+            border: 1px solid var(--panel-border);
+            color: white;
+            box-sizing: border-box;
+        }
+
+        /* Layout */
+    .bodycam-row{display:flex;align-items:center;}
+    .left{flex:1}
+    .right{flex:0 0 92px;display:flex;justify-content:flex-end;align-items:center;padding-left:8px}
+
+    /* Utility classes to replace inline styles */
+    .top-actions{display:flex;align-items:center;justify-content:space-between}
+    .align-center{display:flex;align-items:center}
+
+        /* Logo */
+    #logo{width:72px;height:72px;object-fit:contain;border-radius:8px;background:transparent}
+
+        /* REC line */
+        .rec {
+            display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#e6eefc;
+        }
+        .rec .dot{
+            width:12px;height:12px;background:#e53935;border-radius:50%;box-shadow:0 0 6px rgba(229,57,53,0.8);animation:blink 1s infinite;
+        }
+        @keyframes blink{0%{opacity:1}50%{opacity:0.15}100%{opacity:1}}
+
+        .brand{font-size:12px;letter-spacing:1px;color:var(--muted);margin-left:6px}
+
+        /* Main info */
+        .bigline{font-size:14px;font-weight:700;margin-top:8px;color:#fff}
+        .sublabel{font-size:11px;color:var(--accent);letter-spacing:0.6px;margin-top:6px}
+
+        .agency{font-size:11px;margin-top:6px;color:var(--muted);font-weight:600}
+
+        /* Timestamp */
+        .timestamp{font-family:var(--mono);font-size:12px;margin-top:8px;color:#dbe9ff}
+
+        /* Small responsive tweak */
+        @media (max-width:420px){
+            #bodycam{right:8px;width:320px}
+        }
+    </style>
+</head>
+<body>
+    <div id="bodycam" aria-hidden="true">
+        <div class="bodycam-row">
+            <div class="left">
+                <div class="top-actions">
+                    <div class="align-center">
+                        <div class="rec"><div class="dot"></div><div>REC</div><div class="brand">AXON BODYCAM</div></div>
+                    </div>
+                </div>
+                <div class="bigline" id="bigline">Patt</div>
+                <div class="agency" id="agency">STATE OF SAN ANDREAS</div>
+                <div class="timestamp" id="ts">APR 14 2024 00:00:00 PDT</div>
+            </div>
+            <div class="right">
+                <img id="logo" src="logo.png" alt="logo">
+            </div>
+        </div>
+    </div>
+
+    <audio id="bodycamSound" src="bodycam_on.wav"></audio>
+
+    <script src="postal.js"></script>
+    <style>
+        /* NUI notification styles - modern police look */
+    #bv-notify-container{position:fixed;top:18px;right:18px;left:auto;z-index:10000;display:flex;flex-direction:column;gap:10px}
+        .bv-notify{min-width:300px;max-width:420px;padding:12px 14px;border-radius:10px;background:linear-gradient(90deg,#0b1b2b,#0f2940);color:#eaf4ff;border:1px solid rgba(255,255,255,0.06);box-shadow:0 6px 20px rgba(3,10,20,0.6);display:flex;gap:10px;align-items:flex-start}
+    .bv-notify .bv-left{flex-shrink:0;width:auto;display:flex;align-items:center}
+    .bv-notify .bv-left .bv-badge{background:#0BA6FF; color:#001f2e; padding:6px 10px;border-radius:6px;font-weight:700;font-size:12px;display:inline-block;min-width:52px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .bv-notify .bv-main{flex:1}
+        .bv-notify .bv-title{font-weight:800;color:#dff2ff;margin-bottom:4px}
+        .bv-notify .bv-sub{font-size:12px;color:#c8e6ff;opacity:0.9}
+        .bv-notify.bv-error{border-left:4px solid #e53935}
+        .bv-notify.bv-success{border-left:4px solid #43a047}
+        .bv-notify.bv-info{border-left:4px solid #2196f3}
+        .bv-notify .bv-meta{font-size:11px;color:#9fc8ff;margin-top:6px}
+        @media (max-width:420px){ #bv-notify-container{left:8px;right:8px;top:12px} }
+    </style>
+    <script>
+        // Simple uppercase month day formatting to match mockup
+        function pad(n){return n<10?('0'+n):n}
+        function formatTimestamp(d){
+            try{
+                const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                const m = months[d.getMonth()];
+                const day = pad(d.getDate());
+                const year = d.getFullYear();
+                const hh = pad(d.getHours());
+                const mm = pad(d.getMinutes());
+                const ss = pad(d.getSeconds());
+                // best-effort TZ abbreviation from toString()
+                const tz = d.toString().match(/\(([^)]+)\)$/);
+                let tzLabel = 'UTC';
+                if(tz && tz[1]){
+                    // e.g. Pacific Daylight Time -> PDT
+                    const parts = tz[1].split(' ').map(s=>s[0]).join('');
+                    tzLabel = parts.toUpperCase();
+                } else {
+                    // fallback: use timezone offset
+                    const ofs = -d.getTimezoneOffset()/60;
+                    tzLabel = (ofs>=0?'+':'')+ofs;
+                }
+                return `${m} ${day} ${year} ${hh}:${mm}:${ss} ${tzLabel}`;
+            }catch(e){
+                return new Date().toUTCString();
+            }
+        }
+
+        let tsEl = document.getElementById('ts');
+        function tick(){
+            tsEl.textContent = formatTimestamp(new Date());
+        }
+        setInterval(tick,1000);
+        tick();
+
+        // Update bigline and agency from NUI messages
+        function updateInfo(data){
+            const big = document.getElementById('bigline');
+            const agency = document.getElementById('agency');
+            const name = data.name || '';
+            const callsign = data.callsign || '';
+            if(callsign || name){
+                // format: {callsign} | {name}
+                big.textContent = (callsign?callsign:'') + (callsign && name? ' | ':'') + (name?name:'');
+            }
+            if(data.department !== undefined){
+                agency.textContent = data.department || '';
+            }
+        }
+        
+        // Notification area
+        const notifyContainer = (function(){
+            let el = document.createElement('div');
+            el.id = 'bv-notify-container';
+            document.body.appendChild(el);
+            return el;
+        }());
+
+        function showNotification(opts){
+            // opts: { title, text, type = 'info'|'success'|'error', badge }
+            try{
+                const n = document.createElement('div');
+                n.className = 'bv-notify bv-' + (opts.type || 'info');
+                const left = document.createElement('div'); left.className = 'bv-left';
+                const badge = document.createElement('div'); badge.className = 'bv-badge'; badge.textContent = opts.badge || 'DISPATCH';
+                left.appendChild(badge);
+                const main = document.createElement('div'); main.className = 'bv-main';
+                const t = document.createElement('div'); t.className = 'bv-title'; t.textContent = opts.title || 'Notice';
+                const s = document.createElement('div'); s.className = 'bv-sub'; s.textContent = opts.text || '';
+                main.appendChild(t); main.appendChild(s);
+                if(opts.meta){ const m = document.createElement('div'); m.className='bv-meta'; m.textContent = opts.meta; main.appendChild(m); }
+                n.appendChild(left); n.appendChild(main);
+                notifyContainer.appendChild(n);
+                // auto remove after 6s
+                setTimeout(()=>{ try{ n.remove(); }catch(e){} }, Math.max(4000, opts.ttl || 6000));
+            }catch(e){ console.error('notify err', e); }
+        }
+
+        window.addEventListener('message', function(event) {
+            const d = event.data;
+            if (!d) return;
+            if (d.type === 'bv-notify') {
+                showNotification(d.payload || {});
+                return;
+            }
+            if (d.type === 'toggleBodycam') {
+                const bodycam = document.getElementById('bodycam');
+                if (d.active) {
+                    bodycam.style.display = 'block';
+                    bodycam.setAttribute('aria-hidden','false');
+                    const snd = document.getElementById('bodycamSound');
+                    if(snd && snd.play) try{ snd.currentTime = 0; snd.play().catch(()=>{}); }catch(e){}
+                } else {
+                    bodycam.style.display = 'none';
+                    bodycam.setAttribute('aria-hidden','true');
+                }
+            } else if (d.type === 'updateInfo') {
+                updateInfo(d);
+            }
+        });
+    </script>
+</body>
+</html>
